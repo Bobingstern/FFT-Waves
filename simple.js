@@ -9,8 +9,13 @@ function troch(x,y,amp,freq, speed){
     return createVector(X,Y)
 }
 function draw(){
-    background(220);
-    fill(0,0,255,100)
+    background(0);
+    noFill()
+
+    stroke(255)
+    circle(500, height/2, 220)
+    
+    fill(0,0,100,150)
     stroke(0,0,255)
     beginShape()
     let Y_START = height/2
@@ -35,5 +40,6 @@ function draw(){
     vertex(width,height)
     vertex(0,height)
     endShape()
+    
     t+=1
 }
