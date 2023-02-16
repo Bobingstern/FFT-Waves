@@ -50,32 +50,45 @@ const material = new THREE.MeshBasicMaterial( {color: 0x00a6ff, side: THREE.Doub
 var dummyRGBA = [];
 let dummyRGBA2 = []
 for(var i=0; i < (N+1)**2; i++){
-    dummyRGBA[i] = [ocean.h_tilde_0[i].x * 150000, ocean.h_tilde_0[i].y * 150000, 0, 255];
-    dummyRGBA2[i] = [ocean.h_tilde_0[i].z * 100000, ocean.h_tilde_0[i].w * 100000, 0, 255];
-    //dummyRGBA[i] = [255, 0, 255, 255]
+    dummyRGBA[i] = [Math.abs(ocean.h_tilde_0[i].x * 100000), Math.abs(ocean.h_tilde_0[i].y * 100000), ocean.h_tilde_0[i].x < 0 ? 1 : 0, 255];
+    dummyRGBA2[i] = [Math.abs(ocean.h_tilde_0[i].z * 100000), Math.abs(ocean.h_tilde_0[i].w * 100000), ocean.h_tilde_0[i].z < 0 ? 1 : 0, ocean.h_tilde_0[i].w < 0 ? 1 : 0];
+    
 }
 
+
 //flatten dummyRBGA to a single array of floats
-//dummyRGBA[N+2] = [0, 0, 0, 255]
-dummyRGBA.reverse()
+//dummyRGBA.reverse()
 dummyRGBA = [].concat.apply([], dummyRGBA);
 
+//dummyRGBA2.reverse()
+dummyRGBA2 = [].concat.apply([], dummyRGBA2);
 
-let ida = new ImageData(Uint8ClampedArray.from(dummyRGBA), N+1, N+1);
-let dummyTex = new THREE.Texture(ida, THREE.UVMapping, THREE.ClampToEdgeWrapping, THREE.ClampToEdgeWrapping, THREE.NearestFilter);
-dummyTex.needsUpdate = true
+let testTex = new THREE.DataTexture(Uint8ClampedArray.from(dummyRGBA), N+1, N+1)
+let testTex2 = new THREE.DataTexture(Uint8ClampedArray.from(dummyRGBA2), N+1, N+1)
+testTex.flipY = true
+testTex.needsUpdate = true
+
+// let ida = new ImageData(Uint8ClampedArray.from(dummyRGBA), N+1, N+1);
+// let ida2 = new ImageData(Uint8ClampedArray.from(dummyRGBA2), N+1, N+1);
+// let dummyTex = new THREE.Texture(ida, THREE.UVMapping, THREE.ClampToEdgeWrapping, THREE.ClampToEdgeWrapping, THREE.NearestFilter);
+// let dummyTex2 = new THREE.Texture(ida2, THREE.UVMapping, THREE.ClampToEdgeWrapping, THREE.ClampToEdgeWrapping, THREE.NearestFilter);
+// dummyTex.needsUpdate = true
+// dummyTex2.needsUpdate = true
 
 
-const cvs = document.createElement("canvas");
-cvs.width = cvs.height = (N+1)**2;
-const ctx = cvs.getContext("2d");
+// const cvs = document.createElement("canvas");
+// cvs.width = cvs.height = (N+1)**2;
+// const ctx = cvs.getContext("2d");
 
-ctx.putImageData(ida, 0, 0);
-cvs.id = "monke"
+// ctx.putImageData(ida, 0, 0);
+// cvs.id = "monke"
 
-document.body.appendChild(cvs);
+// document.body.appendChild(cvs);
 
-let ctT = new THREE.CanvasTexture(cvs)
+// let ctT = new THREE.CanvasTexture(cvs)
+let mmm = new THREE.TextureLoader().load("wate.jpg")
+mmm.wrapS = THREE.RepeatWrapping;
+mmm.wrapT = THREE.RepeatWrapping;
 
 const oceanShader = new THREE.ShaderMaterial({
     wireframe: false, 
@@ -88,7 +101,8 @@ const oceanShader = new THREE.ShaderMaterial({
         wind: {value: wind},
         h_tilde_0: {value: ocean.h_tilde_0},
         offset : {value: new THREE.Vector2(0,0)},
-        tex: {value: dummyTex}
+        tex: {value: testTex},
+        tex2: {value: testTex2}
     },
     vertexShader : `
     const float PI = 3.141592653589793;
@@ -101,7 +115,7 @@ const oceanShader = new THREE.ShaderMaterial({
     uniform vec2 wind;
     uniform vec4 h_tilde_0[(N+1)*(N+1)];
     uniform sampler2D tex;
-
+    uniform sampler2D tex2;
 
     // vec2 h_tilde[N];
     // vec2 h_tilde_slopex[N];
@@ -111,7 +125,7 @@ const oceanShader = new THREE.ShaderMaterial({
 
     uniform vec2 offset;
     varying vec3 vNormal;
-
+    varying vec2 vUv;
 
     //complex multiply
     vec2 cmult(vec2 a, vec2 b) {
@@ -131,6 +145,25 @@ const oceanShader = new THREE.ShaderMaterial({
     vec2 hTilde(int n, int m) {
         int index = m * (N+1) + n;
         vec4 htilde0 = h_tilde_0[index];
+
+        // vec4 texP = texture2D(tex, vec2(float(N-n)/float(N+1), float(m)/float(N+1))).rgba;
+        // vec4 texP2 = texture2D(tex2, vec2(float(N-n)/float(N+1), float(m)/float(N+1))).rgba;
+
+        // if (texP.z == 1.0){
+        //     texP.x *= -1.0;
+        // }
+        // if (texP.w == 1.0){
+        //     texP.y *= -1.0;
+        // }
+        // if (texP2.z == 1.0){
+        //     texP2.x *= -1.0;
+        // }
+        // if (texP2.w == 1.0){
+        //     texP2.y *= -1.0;
+        // }
+        // texP /= 1000.0;
+        // texP2 /= 1000.0;
+        // //vec4 htilde0 = vec4(texP.x, texP.y, texP2.x, texP2.y);
         //vec4 htilde0 = texture2D(tex, vec2(float(n)/float(N+1), float(m)/float(N+1))).rgba;
         float omegat = dispersion(n, m) * t;
 
@@ -203,6 +236,7 @@ const oceanShader = new THREE.ShaderMaterial({
         no += vec3(0,1,0);
         no = normalize(no);
         vNormal = no;
+        //D *= 0.0;
         gl_Position = projectionMatrix * modelViewMatrix * vec4(position.x + D.x, position.y + D.y, h.x * -1.0, 1.0);
     }
     `,
@@ -210,6 +244,8 @@ const oceanShader = new THREE.ShaderMaterial({
     //color blue
     varying mediump vec3 vNormal;
     uniform sampler2D tex;
+
+    varying vec2 vUv;
     void main() {
         mediump vec3 light = vec3(1.0, 0.4, 0.0);
 
@@ -221,14 +257,14 @@ const oceanShader = new THREE.ShaderMaterial({
         mediump float dProd = max(0.0, dot(vNormal, light));
 
         // feed into our frag colour
-        vec3 c = vec3(0, 102, 200);
+        vec3 c = vec3(0, 132, 200);
         gl_FragColor = vec4(dProd * (c.x/255.0), // R
                             dProd * (c.y/255.0), // G
                             dProd * (c.z/255.0), // B
                             0.9);  // A
 
 
-        //gl_FragColor = vec4(texture2D(tex, vec2(0.0/3.0, 0.0/3.0)));
+        //gl_FragColor = texture2D(tex, vUv);
     }
     `
 })
@@ -241,7 +277,7 @@ plane.quaternion.copy( camera.quaternion );
 plane.rotation.x = -Math.PI / 2;
 
 let planes = []
-let s = 4
+let s = 1
 for (let i=0;i<s;i++){
     for (let j=0;j<s;j++){
         let p = new THREE.Mesh( geometry.clone(), oceanShader.clone() );
